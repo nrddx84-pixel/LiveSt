@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<title>StreamLoop | 24/7 Live Streaming</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#0b1220; --panel:#111c2e; --line:#293951;
+  --text:#f2f6ff; --muted:#9eb0c9;
+  --blue:#5b8cff; --green:#25cc8a; --red:#ff6577;
+}
+* { box-sizing:border-box }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px system-ui,-apple-system,Segoe UI,sans-serif;
+}
+header {
+  padding:20px; border-bottom:1px solid var(--line);
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; flex-wrap:wrap;
+}
+.brand { font-size:22px; font-weight:800 }
+.brand span { color:var(--blue) }
+.badge { color:var(--muted); font-size:12px }
+main { max-width:1050px; margin:auto; padding:20px 14px }
+.hero {
+  padding:24px; border:1px solid var(--line); border-radius:18px;
+  background:linear-gradient(120deg,#182b4a,#111c2e);
+  margin-bottom:18px;
+}
+.hero h1 { font-size:clamp(26px,5vw,38px); margin:0 0 10px }
+p { color:var(--muted); line-height:1.6 }
+.grid { display:grid; grid-template-columns:1.15fr .85fr; gap:18px }
+.card {
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:16px; padding:19px; margin-bottom:18px;
+  min-width:0;
+}
+h2 { font-size:18px; margin:0 0 7px }
+label { display:block; margin:16px 0 7px; font-weight:650; font-size:13px }
+input,select {
+  width:100%; min-width:0; padding:12px; border-radius:10px;
+  border:1px solid #344761; background:#0a1424; color:var(--text);
+  font:inherit;
+}
+input[type=file] { padding:10px }
+button {
+  border:0; border-radius:10px; padding:12px 15px;
+  font:700 14px system-ui; cursor:pointer;
+}
+button:disabled { opacity:.45; cursor:not-allowed }
+.primary { background:var(--blue); color:white }
+.success { background:var(--green); color:#062519 }
+.stop { background:#49212e; color:#ffdce1; border:1px solid #783a49 }
+.secondary { background:#243650; color:white; border:1px solid #3a506d }
+.actions { display:flex; gap:9px; margin-top:16px }
+.actions button { flex:1 }
+.hint { color:var(--muted); font-size:12px; line-height:1.55; margin-top:8px }
+.status {
+  padding:14px; border:1px solid var(--line); border-radius:12px;
+  display:flex; align-items:center; gap:12px; margin:16px 0;
+  background:#0b1729;
+}
+.dot { width:11px; height:11px; flex-shrink:0; border-radius:50%; background:#8492a7 }
+.dot.live { background:var(--green); box-shadow:0 0 0 5px #25cc8a20 }
+.dot.error { background:var(--red) }
+.status small { display:block; color:var(--muted); margin-top:4px }
+.stats { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.stat { background:#0b1729; border:1px solid var(--line); padding:13px; border-radius:11px; overflow-wrap:anywhere }
+.stat small { color:var(--muted); display:block }
+.stat strong { display:block; margin-top:7px }
+.progress { height:7px; background:#2a3a50; border-radius:20px; overflow:hidden; margin-top:12px }
+.bar { height:100%; width:0; background:var(--green); transition:width .15s }
+.notice { padding:12px; margin-top:14px; border-radius:10px; background:#2a2417; color:#ffe2a1; font-size:12px; line-height:1.6 }
+.log { background:#080f1c; padding:12px; border-radius:10px; font:12px/1.6 monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:200px; overflow:auto }
+footer { text-align:center; color:var(--muted); font-size:12px; padding:22px }
+@media(max-width:760px) {
+  .grid { grid-template-columns:1fr }
+  header { padding:16px }
+  .hero { padding:19px }
+  .card { padding:15px }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">▶ <span>Stream</span>Loop</div>
+  <div class="badge">CLOUD STREAMING DASHBOARD</div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Your video. Always live.</h1>
+    <p>Upload a video, connect your streaming destination, and control your stream from one dashboard. A deployed cloud backend is required for actual streaming.</p>
+  </section>
+
+  <div class="grid">
+    <section>
+      <div class="card">
+        <h2>1. Video upload</h2>
+        <p>Select a video from your Android phone.</p>
+        <label for="video">Choose video file</label>
+        <input id="video" type="file" accept="video/*">
+        <div id="fileInfo" class="hint">No video selected.</div>
+        <div class="progress"><div id="bar" class="bar"></div></div>
+        <div id="uploadInfo" class="hint">Upload progress: 0%</div>
+        <button id="upload" class="primary" style="width:100%;margin-top:12px" disabled>Upload to server</button>
+      </div>
+
+      <div class="card">
+        <h2>2. Stream settings</h2>
+        <label for="rtmp">Stream server URL</label>
+        <input id="rtmp" value="rtmps://a.rtmps.youtube.com:443/live2" autocomplete="off">
+
+        <label for="key">YouTube stream key</label>
+        <input id="key" type="password" placeholder="Paste your private stream key" autocomplete="new-password">
+        <div class="hint">Never share your stream key or publish it in your GitHub repository.</div>
+
+        <label for="mode">Playback</label>
+        <select id="mode">
+          <option value="loop">Loop continuously</option>
+          <option value="once">Play once</option>
+        </select>
+
+        <div class="actions">
+          <button id="start" class="success">▶ Start Live</button>
+          <button id="stop" class="stop">■ Stop Live</button>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>Live status</h2>
+        <div class="status">
+          <div id="dot" class="dot"></div>
+          <div><strong id="state">Not connected</strong><small id="detail">Connect your backend below.</small></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><small>Selected file</small><strong id="fileSize">—</strong></div>
+          <div class="stat"><small>Upload progress</small><strong id="percent">0%</strong></div>
+          <div class="stat"><small>Playback mode</small><strong id="modeStat">Loop</strong></div>
+          <div class="stat"><small>Backend</small><strong id="backendStat">Offline</strong></div>
+        </div>
+        <div class="notice">
+          <strong>Important:</strong> This page is a frontend only. GitHub Pages cannot run FFmpeg or provide persistent video storage. Configure the backend on your cloud server first.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Backend connection</h2>
+        <label for="api">Backend base URL</label>
+        <input id="api" type="url" placeholder="https://your-backend.example.com" autocomplete="url">
+        <div class="hint">Enter the HTTPS URL of your deployed StreamLoop API, not your GitHub Pages URL.</div>
+        <button id="connect" class="secondary" style="width:100%;margin-top:13px">Save & Check Connection</button>
+        <div id="connectionHint" class="hint">Required API: /api/status, /api/upload, /api/start, /api/stop</div>
+      </div>
+
+      <div class="card">
+        <h2>Activity log</h2>
+        <div id="log" class="log">StreamLoop initialized.
+Waiting for backend configuration.</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer>StreamLoop · Frontend prototype · Cloud server required for 24/7 streaming</footer>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  let file = null;
+  let videoId = null;
+  let connected = false;
+
+  function log(message) {
+    const box = $("log");
+    box.textContent += "\n" + new Date().toLocaleTimeString() + " — " + message;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function status(title, detail, type = "") {
+    $("state").textContent = title;
+    $("detail").textContent = detail;
+    $("dot").className = "dot " + type;
+  }
+
+  function apiBase() {
+    return $("api").value.trim().replace(/\/+$/, "");
+  }
+
+  function size(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    const units = ["KB", "MB", "GB", "TB"];
+    let n = bytes / 1024, i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toFixed(2) + " " + units[i];
+  }
+
+  async function request(path, options = {}) {
+    if (!apiBase()) throw new Error("Enter your backend URL first.");
+    return fetch(apiBase() + path, options);
+  }
+
+  $("video").addEventListener("change", event => {
+    file = event.target.files[0] || null;
+    videoId = null;
+    $("upload").disabled = !file;
+    $("fileInfo").textContent = file ? file.name + " · " + size(file.size) : "No video selected.";
+    $("fileSize").textContent = file ? size(file.size) : "—";
+    $("uploadInfo").textContent = "Upload progress: 0%";
+    $("percent").textContent = "0%";
+    $("bar").style.width = "0%";
+    if (file) log("Selected " + file.name + " (" + size(file.size) + ").");
+  });
+
+  $("mode").addEventListener("change", () => {
+    $("modeStat").textContent = $("mode").value === "loop" ? "Loop" : "Once";
+  });
+
+  $("connect").addEventListener("click", async () => {
+    $("connect").disabled = true;
+    try {
+      const response = await request("/api/status");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const data = await response.json();
+      connected = true;
+      $("backendStat").textContent = "Connected";
+      status(data.live ? "Live" : "Backend connected", data.message || "API connection successful", data.live ? "live" : "");
+      $("connectionHint").textContent = "Connected. Backend status endpoint responded.";
+      log("Backend connected.");
+    } catch (error) {
+      connected = false;
+      $("backendStat").textContent = "Offline";
+      status("Connection failed", error.message, "error");
+      $("connectionHint").textContent = "Check the backend URL, server, HTTPS and CORS configuration.";
+      log("Connection failed: " + error.message);
+    } finally {
+      $("connect").disabled = false;
+    }
+  });
+
+  $("upload").addEventListener("click", () => {
+    if (!file) return;
+    if (!connected) {
+      status("Backend required", "Connect your backend before uploading.", "error");
+      log("Upload blocked: backend not connected.");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("video", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", apiBase() + "/api/upload");
+    $("upload").disabled = true;
+    $("uploadInfo").textContent = "Uploading…";
+
+    xhr.upload.onprogress = event => {
+      if (!event.lengthComputable) return;
+      const p = Math.round(event.loaded / event.total * 100);
+      $("bar").style.width = p + "%";
+      $("uploadInfo").textContent = "Uploaded " + size(event.loaded) + " / " + size(event.total);
+      $("percent").textContent = p + "%";
+    };
+
+    xhr.onload = () => {
+      $("upload").disabled = false;
+      let data = {};
+      try { data = JSON.parse(xhr.responseText || "{}"); } catch (_) {}
+      if (xhr.status < 200 || xhr.status >= 300) {
+        $("uploadInfo").textContent = "Upload failed: HTTP " + xhr.status;
+        log("Upload failed: HTTP " + xhr.status);
+        return;
+      }
+      videoId = data.videoId || data.id || data.filename;
+      if (!videoId) {
+        $("uploadInfo").textContent = "Upload response missing videoId.";
+        log("Backend response must include videoId, id, or filename.");
+        return;
+      }
+      $("bar").style.width = "100%";
+      $("percent").textContent = "100%";
+      $("uploadInfo").textContent = "Upload complete.";
+      log("Video uploaded successfully.");
+    };
+
+    xhr.onerror = () => {
+      $("upload").disabled = false;
+      $("uploadInfo").textContent = "Network error. Check your server.";
+      log("Upload network error.");
+    };
+
+    xhr.send(form);
+  });
+
+  $("start").addEventListener("click", async () => {
+    if (!connected) return log("Connect backend first.");
+    if (!videoId) return log("Upload a video successfully first.");
+    const rtmpUrl = $("rtmp").value.trim();
+    const streamKey = $("key").value.trim();
+    if (!rtmpUrl || !streamKey) return log("Enter the stream URL and key.");
+
+    $("start").disabled = true;
+    try {
+      const response = await request("/api/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId,
+          rtmpUrl,
+          streamKey,
+          loop: $("mode").value === "loop"
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "HTTP " + response.status);
+      status("Start request accepted", data.message || "Check your streaming platform.", "live");
+      log("Start request accepted by backend.");
+    } catch (error) {
+      status("Start failed", error.message, "error");
+      log("Start failed: " + error.message);
+    } finally {
+      $("start").disabled = false;
+      $("key").value = "";
+    }
+  });
+
+  $("stop").addEventListener("click", async () => {
+    if (!connected) return log("Connect backend first.");
+    try {
+      const response = await request("/api/stop", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "HTTP " + response.status);
+      status("Stopped", data.message || "Stream stop request completed.");
+      log("Stop request accepted by backend.");
+    } catch (error) {
+      status("Stop failed", error.message, "error");
+      log("Stop failed: " + error.message);
+    }
+  });
+})();
+</script>
+</body>
+</html>
